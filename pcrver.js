@@ -33,23 +33,24 @@ const fileManager = new GoogleAIFileManager(process.env.API_KEY);
 });
 } */
 
-export async function uploadPDF(filepath){
+export async function uploadPDF(pcrFiles, productFiles){
     const carbonCSVContent = await fs.readFile(`${__dirname}/Preview_Data (1).csv`, 'utf-8');
     const prompt=await fs.readFile(`${__dirname}/填表教學.txt`,'utf-8');
     const pull=await fs.readFile(`${__dirname}/下拉式.txt`,'utf-8');
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
     const pcruploadResult = await fileManager.uploadFile(
-    `${__dirname}/烘焙蛋糕pcr.pdf`,
-    {
+      pcrFiles,
+      {
         mimeType: "application/pdf",
-    },
+      },
     );
     const useruploadResult = await fileManager.uploadFile(
-    filepath,
+    productFiles,
     {
         mimeType: "application/pdf",
     },
     );
+
     const exampleCSVContent = await fs.readFile(`${__dirname}/盤查項目範本.csv`, 'utf-8');
     const result3 = await model.generateContent([
         `${prompt}`,
@@ -66,25 +67,69 @@ export async function uploadPDF(filepath){
             },
 
         },
-        `我提供了多份pcr文件，請先閱讀完所有pcr文件${pcruploadResult}學習如何進行碳盤查後，閱讀我提供的Qcake碳盤查報告.pdf${useruploadResult}、以及我剛才教你的填表方式，「以json格式完成一份填寫完整的碳盤查表格，只要回覆我這個表格就好不要有其他任何解釋」。此表格必須可以用來填入excel並且嚴格遵守下列格式:A1到G1為一合併儲存格，內容為"活動數據"。H1到K1為一合併儲存格，內容為"排放係數"。A1到G1為一合併儲存格，內容為"活動數據"。L1、L2為一合併儲存格，內容為"備註"。A2"生命週期階段"。B2"群組"。C2"名稱"。D2"總活動量"。E2"總活動量單位"。F2"每單位數量"。G2"每單位數量單位"。H2"名稱"。I2"數值"。J2"排放係數宣告單位"。K2"數據來源"。json的key須以A2到K2來命名。其中H2、I2、J2、K2的欄位皆在形容使用的排放係數，排放係數由我提供的數據${carbonCSVContent}取得，csv檔案中的department那行代表數據來源。表中要填入的排放係數以及排放係數單位實際代表的是碳足跡數值（kgCO2e）以及宣告單位。排放係數的單位必須要嚴格遵守與總活動量單位以及每單位數量單位相同且數值也必須進行單位換算(例如如果結果是6公噸但單位須轉為公斤時，需轉成6000公斤)!!在資料中找不到的格子就直接留白就好不要補充說明。另外，當中的生命週期階段欄位、群組欄位以及各個單位欄位都是下拉式選單，選單內容請嚴格依照${pull}的內容，選項不能有任何更動。另外總活動量數據為每單位活動量乘上總產量或總重量(依單位決定)，請直接寫出計算後的結果絕對不要列算式，「每單位」的部分也請幫我算好1個單位的數量，不要列類似8/200這種形式的`
+        `我提供了多份 PCR 文件 ${pcruploadResult}，請先完整閱讀並理解如何進行產品碳盤查。接著閱讀我提供的 Qcake 碳盤查報告 PDF ${useruploadResult}，以及我剛才提供的填表教學方式與下拉選單 ${pull}。
+
+請根據以上所有內容，「以 JSON 格式產出一份填寫完整的碳盤查表格」，這份表格會被用來填入 Excel 表單，因此必須**嚴格對應下列欄位與格式**，且「只回傳 JSON 格式，請勿包含任何解釋文字」。
+
+---
+
+### ✅ 表格欄位結構如下（對應 Excel）：
+
+- A2: "生命週期階段"
+- B2: "群組"
+- C2: "名稱"
+- D2: "總活動量"
+- E2: "總活動量單位"
+- F2: "每單位數量"
+- G2: "每單位數量單位"
+- H2: "排放係數名稱"
+- I2: "排放係數數值"
+- J2: "排放係數單位"
+- K2: "排放係數數據來源"
+- L2: "備註"
+
+請將這些欄位名直接當作 JSON 的 Key 名稱。
+
+---
+
+### ❗ 特別注意事項（請務必遵守）：
+
+1. **每單位數量（F 欄）** 指的是：當一個產品的功能單位為 1（如 1 公噸），活動數據的總量除以總產品數量所得的每單位值，請直接給出換算後的數值，例如：
+   - ✅ 正確：1030
+   - ❌ 錯誤：1030/11（不能出現算式）
+
+2. **總活動量（D 欄）** 必須根據「每單位數量 × 總產量或總重量」直接算出結果，不能出現計算式，請直接填好。例如：
+   - ✅ 正確：11330
+   - ❌ 錯誤：1030 × 11
+
+3. **不得預設每單位數量為 1。** 這是一個常見錯誤。請務必根據報告中實際提供的總活動量與總產量（或重量）做換算。
+
+4. **排放係數與其單位（I、J 欄）** 必須從我提供的 ${carbonCSVContent} 中取得，並依據排放係數名稱對應查找。若排放係數單位與活動量單位不同，**請務必進行單位換算後再填入**，例如：6 噸需換為 6000 公斤。
+
+5. 若找不到欄位對應數據，請直接空白處理，不要填「無」或「未知」等補充說明。
+
+6. 「生命週期階段」、「群組」、「單位」的選項必須嚴格從 ${pull} 提供的下拉選單中選取，不得自行創造或更動任何選項。
+
+---
+
+請輸出這份 JSON 表格。
+`
     ]); 
-    const resultText = await result.response.text();
-     const result_missing = await model.generateContent([
+    const resultText2 = await result.response.text();
+    const result_missing = await model.generateContent([
         { fileData: { fileUri: pcruploadResult.file.uri, mimeType: pcruploadResult.file.mimeType }},
         { fileData: { fileUri: useruploadResult.file.uri, mimeType: useruploadResult.file.mimeType }},
-        `請先閱讀完所有pcr文件${pcruploadResult}以及填表教學${prompt}學習如何進行碳盤查後，閱讀目前為止的結果${resultText}，條列式告訴我我還缺少哪些「活動數據名稱項目」(即整列都沒有抓取到的，如果只缺部分欄位的項目就不算)，並不要有其他解釋。使用者只需在每個需要填寫的大方向都有提供類似項目即可，只需提供明確缺少的大方向項目。`
+        `請先閱讀完所有pcr文件${pcruploadResult}以及填表教學${prompt}學習如何進行碳盤查後，閱讀目前為止的結果${resultText2}，條列式告訴我我還缺少哪些「活動數據名稱項目」(即整列都沒有抓取到的，如果只缺部分欄位的項目就不算)，並不要有其他解釋。使用者只需在每個需要填寫的大方向都有提供類似項目即可，只需提供明確缺少的大方向項目。`
       ]);
       const missingInfo = result_missing.response.text(); // 顯示用
-      console.log("缺少的資訊:", missingInfo); // 顯示用 
+      console.log("缺少的資訊:", missingInfo); // 顯示用
     console.log(result.response.text());
-    const resultText2 = await result.response.text();
 const cleanJsonString = resultText2
   .replace(/```json/g, '')
   .replace(/```/g, '')
   .trim();
 
 return cleanJsonString;
-
 }
 
 
@@ -152,10 +197,10 @@ async function generateExcel(datain) {
         item['總活動量單位'],
         item['每單位數量'],
         item['每單位數量單位'],
-        item['名稱'],
-        item['數值'],
-        item['排放係數宣告單位'],
-        item['數據來源'],
+        item['排放係數名稱'],
+        item['排放係數數值'],
+        item['排放係數單位'],
+        item['排放係數數據來源'],
         item['備註'] || ''
       ]);
     });

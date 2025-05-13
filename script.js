@@ -1,6 +1,9 @@
 let analyzedData = null;
 let currentStep = 1;
 let totalSteps;
+let uploadedPCRFile = null;
+let uploadedProductFile = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   const steps = document.querySelectorAll('.step-content-wrapper');
   const stepIndicators = document.querySelectorAll('.step-indicator');
@@ -10,6 +13,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   
   totalSteps = steps.length;
+
+    // ✅ 記錄 PCR 和產品 PDF 的上傳檔案
+    document.getElementById('regulation-files')?.addEventListener('change', (e) => {
+    uploadedPCRFile = e.target.files[0] || null;
+    });
+
+    document.getElementById('product-files')?.addEventListener('change', (e) => {
+    uploadedProductFile = e.target.files[0] || null;
+    });
 
   function updateStepUI() {
     steps.forEach((step, index) => {
@@ -150,35 +162,36 @@ function resetAllData() {
 
   if (computeButton && computationStatus) {
     computeButton.addEventListener('click', async () => {
-      const fileInput = document.getElementById('product-files');
-      if (fileInput.files.length === 0) {
-        alert('請先選擇一份產品PDF文件。');
-        return;
-      }
+  if (!uploadedPCRFile || !uploadedProductFile) {
+    alert('請確認已上傳 PCR 檔與產品 PDF 檔。');
+    return;
+  }
 
-      const formData = new FormData();
-      formData.append('pdf', fileInput.files[0]);
+  const formData = new FormData();
+  formData.append('pcrFile', uploadedPCRFile);
+  formData.append('productFile', uploadedProductFile);
 
-      computationStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 系統計算中，請稍候...';
+  computationStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 系統計算中，請稍候...';
 
-      try {
-        const response = await fetch('http://localhost:3000/api/analyze', {
-          method: 'POST',
-          body: formData
-        });
-
-        const result = await response.json();
-        if (result.success) {
-          computationStatus.innerHTML = '<i class="fas fa-check-circle"></i> 計算完成！';
-          analyzedData = JSON.parse(result.data.replace(/```json|```/g, '').trim());
-          console.log('✅ 分析結果：', analyzedData);
-        } else {
-          computationStatus.innerHTML = '❌ 錯誤：' + result.error;
-        }
-      } catch (err) {
-        computationStatus.innerHTML = '❌ 發送失敗：' + err.message;
-      }
+  try {
+    const response = await fetch('http://localhost:3000/api/analyze', {
+      method: 'POST',
+      body: formData
     });
+
+    const result = await response.json();
+    if (result.success) {
+      computationStatus.innerHTML = '<i class="fas fa-check-circle"></i> 計算完成！';
+      analyzedData = JSON.parse(result.data.replace(/```json|```/g, '').trim());
+      console.log('✅ 分析結果：', analyzedData);
+    } else {
+      computationStatus.innerHTML = '❌ 錯誤：' + result.error;
+    }
+  } catch (err) {
+    computationStatus.innerHTML = '❌ 發送失敗：' + err.message;
+  }
+});
+
   }
 // ✅ Step 4 手動填寫缺漏欄位
     const manualInputArea = document.getElementById('manual-input-area');
@@ -260,6 +273,7 @@ function resetAllData() {
       } else if (
         key === '總活動量單位' ||
         key === '每單位數量單位' ||
+        key === '排放係數單位'||
         key === '排放係數宣告單位'
       ) {
         input = createSelect(unitOptions, value);
