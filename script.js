@@ -347,36 +347,44 @@ function resetAllData() {
   });
 
   observer.observe(document.body, { subtree: true, attributes: true });
-  const exportButton = document.getElementById('export-button');
-  const exportStatus = document.getElementById('export-status');
+const exportButton = document.getElementById('export-button');
+const exportStatus = document.getElementById('export-status');
 
-  if (exportButton && exportStatus) {
-    exportButton.addEventListener('click', async () => {
-      if (!analyzedData) {
-        alert('請先完成計算步驟，才能匯出報告。');
-        return;
+if (exportButton && exportStatus) {
+  exportButton.addEventListener('click', async () => {
+    if (!analyzedData || analyzedData.length === 0) {
+      alert('請先完成計算步驟，才能匯出報告。');
+      return;
+    }
+
+    exportStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在產生 Excel 報告...';
+
+    try {
+      const response = await fetch('http://localhost:3000/api/export-excel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(analyzedData)  // 傳送資料
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        exportStatus.innerHTML = '<i class="fas fa-check-circle"></i> Excel 已成功產生！即將下載...';
+
+        // 自動下載 Excel 檔案
+        const downloadLink = document.createElement('a');
+        downloadLink.href = 'http://localhost:3000/generated/Carbon_Footprint_Report.xlsx';
+
+        downloadLink.download = 'Carbon_Footprint_Report.xlsx'; // 設定檔案名稱
+        downloadLink.click();  // 模擬點擊下載
+      } else {
+        exportStatus.innerHTML = '❌ 匯出失敗：' + result.error;
       }
+    } catch (err) {
+      exportStatus.innerHTML = '❌ 發送失敗：' + err.message;
+    }
+  });
+}
 
-      exportStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在產生 Excel 報告...';
-
-      try {
-        const response = await fetch('http://localhost:3000/api/export-excel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(analyzedData)
-        });
-
-        const result = await response.json();
-        if (result.success) {
-          exportStatus.innerHTML = '<i class="fas fa-check-circle"></i> Excel 已成功產生！請至伺服器端查看檔案。';
-        } else {
-          exportStatus.innerHTML = '❌ 匯出失敗：' + result.error;
-        }
-      } catch (err) {
-        exportStatus.innerHTML = '❌ 發送失敗：' + err.message;
-      }
-    });
-  }
     function renderReviewTable() {
     const table = document.getElementById('review-table');
     const thead = table.querySelector('thead');

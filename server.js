@@ -1,8 +1,14 @@
-/* // server.js
 import express from 'express';
 import multer from 'multer';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { uploadPDF, generateExcel } from './pcrver.js';
+
+// ✅ 模擬 __dirname（因為是 ES 模組）
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const port = 3000;
@@ -11,43 +17,8 @@ const upload = multer({ dest: 'uploads/' });
 app.use(cors());
 app.use(express.json());
 
-app.post('/api/analyze', upload.single('pdf'), async (req, res) => {
-  try {
-    const filepath = req.file.path;
-    const result = await uploadPDF(filepath);
-    res.json({ success: true, data: result });
-  } catch (error) {
-    console.error('❌ 分析錯誤：', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.post('/api/export-excel', async (req, res) => {
-  try {
-    const data = req.body;
-    await generateExcel(data);
-    res.json({ success: true });
-  } catch (error) {
-    console.error('❌ 匯出錯誤：', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.listen(port, () => {
-  console.log(`🚀 Server running at http://localhost:${port}`);
-}); */
-// server.js
-import express from 'express';
-import multer from 'multer';
-import cors from 'cors';
-import { uploadPDF, generateExcel } from './pcrver.js';
-
-const app = express();
-const port = 3000;
-const upload = multer({ dest: 'uploads/' });
-
-app.use(cors());
-app.use(express.json());
+// ✅ 提供 Excel 下載的靜態資料夾
+app.use('/generated', express.static(path.join(__dirname, 'generated')));
 
 app.post('/api/analyze', upload.fields([
   { name: 'pcrFile', maxCount: 1 },
@@ -64,7 +35,7 @@ app.post('/api/analyze', upload.fields([
     const result = await uploadPDF(pcrPath, productPath);
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('❌ 分析錯誤：', error);
+    console.error('分析錯誤：', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -72,14 +43,21 @@ app.post('/api/analyze', upload.fields([
 app.post('/api/export-excel', async (req, res) => {
   try {
     const data = req.body;
-    await generateExcel(data);
-    res.json({ success: true });
+    const filePath = path.join(__dirname, 'generated', 'Carbon_Footprint_Report.xlsx');
+
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error('❌ 傳入的資料無效');
+    }
+
+    await generateExcel(data, filePath);
+
+    res.json({ success: true, filePath: '/generated/Carbon_Footprint_Report.xlsx' });
   } catch (error) {
-    console.error('❌ 匯出錯誤：', error);
+    console.error('匯出錯誤：', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Server running at http://localhost:${port}`);
+  console.log(`✅ Server running at http://localhost:${port}`);
 });

@@ -9,6 +9,10 @@ import https from 'https';
 import dotenv from 'dotenv';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
+import path from 'path';
+
+
+
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -226,7 +230,8 @@ async function generateExcel(datain) {
       });
     }
   
-    await workbook.xlsx.writeFile('Carbon_Footprint_Report.xlsx');
+    await workbook.xlsx.writeFile(path.join(__dirname, 'generated', 'Carbon_Footprint_Report.xlsx'));
+
     console.log('✅ Excel 文件含選單已生成');
   }
   
