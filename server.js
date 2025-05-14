@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { uploadPDF, generateExcel } from './pcrver.js';
 
-// ✅ 模擬 __dirname（因為是 ES 模組）
+// 模擬 __dirname（因為是 ES 模組）
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -17,7 +17,7 @@ const upload = multer({ dest: 'uploads/' });
 app.use(cors());
 app.use(express.json());
 
-// ✅ 提供 Excel 下載的靜態資料夾
+// 提供 Excel 下載的靜態資料夾
 app.use('/generated', express.static(path.join(__dirname, 'generated')));
 
 app.post('/api/analyze', upload.fields([
@@ -46,7 +46,7 @@ app.post('/api/export-excel', async (req, res) => {
     const filePath = path.join(__dirname, 'generated', 'Carbon_Footprint_Report.xlsx');
 
     if (!Array.isArray(data) || data.length === 0) {
-      throw new Error('❌ 傳入的資料無效');
+      throw new Error('傳入的資料無效');
     }
 
     await generateExcel(data, filePath);
@@ -59,5 +59,5 @@ app.post('/api/export-excel', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`✅ Server running at http://localhost:${port}`);
+  console.log(`Server running at http://localhost:${port}`);
 });
