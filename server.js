@@ -43,13 +43,13 @@ app.post('/api/analyze', upload.fields([
 app.post('/api/export-excel', async (req, res) => {
   try {
     const data = req.body;
-    const filePath = path.join(__dirname, 'generated', 'Carbon_Footprint_Report.xlsx');
+    //const filePath = path.join(__dirname, 'generated', 'Carbon_Footprint_Report.xlsx');
 
     if (!Array.isArray(data) || data.length === 0) {
       throw new Error('傳入的資料無效');
     }
 
-    await generateExcel(data, filePath);
+    await generateExcel(data);
 
     res.json({ success: true, filePath: '/generated/Carbon_Footprint_Report.xlsx' });
   } catch (error) {

@@ -162,37 +162,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (computeButton && computationStatus) {
         computeButton.addEventListener('click', async () => {
-    if (!uploadedPCRFile || !uploadedProductFile) {
-        alert('請確認已上傳 PCR 檔與產品 PDF 檔。');
-        return;
-    }
+            if (!uploadedPCRFile || !uploadedProductFile) {
+                alert('請確認已上傳 PCR 檔與產品 PDF 檔。');
+                return;
+            }
 
-    const formData = new FormData();
-    formData.append('pcrFile', uploadedPCRFile);
-    formData.append('productFile', uploadedProductFile);
+            const formData = new FormData();
+            formData.append('pcrFile', uploadedPCRFile);
+            formData.append('productFile', uploadedProductFile);
 
-    computationStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 系統計算中，請稍候...';
+            computationStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 系統計算中，請稍候...';
 
-    try {
-        const response = await fetch('http://localhost:3000/api/analyze', {
-            method: 'POST',
-            body: formData
+            try {
+                const response = await fetch('http://localhost:3000/api/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    computationStatus.innerHTML = '<i class="fas fa-check-circle"></i> 計算完成！';
+                    analyzedData = JSON.parse(result.data.replace(/```json|```/g, '').trim());
+                    console.log('分析結果：', analyzedData);
+                } else {
+                    computationStatus.innerHTML = '錯誤：' + result.error;
+                }
+            } catch (err) {
+                computationStatus.innerHTML = '發送失敗：' + err.message;
+            }
         });
 
-        const result = await response.json();
-        if (result.success) {
-            computationStatus.innerHTML = '<i class="fas fa-check-circle"></i> 計算完成！';
-            analyzedData = JSON.parse(result.data.replace(/```json|```/g, '').trim());
-            console.log('分析結果：', analyzedData);
-        } else {
-            computationStatus.innerHTML = '錯誤：' + result.error;
-        }
-    } catch (err) {
-        computationStatus.innerHTML = '發送失敗：' + err.message;
     }
-});
-
-  }
 // Step 4 手動填寫缺漏欄位
     const manualInputArea = document.getElementById('manual-input-area');
     const saveManualInputButton = document.getElementById('save-manual-input');
@@ -347,6 +347,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
     observer.observe(document.body, { subtree: true, attributes: true });
+    
+    
+    //export Excel
     const exportButton = document.getElementById('export-button');
     const exportStatus = document.getElementById('export-status');
 
