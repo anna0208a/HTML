@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.success) {
             computationStatus.innerHTML = '<i class="fas fa-check-circle"></i> 計算完成！';
             analyzedData = JSON.parse(result.data.replace(/```json|```/g, '').trim());
-            console.log('✅ 分析結果：', analyzedData);
+            console.log('分析結果：', analyzedData);
         } else {
             computationStatus.innerHTML = '錯誤：' + result.error;
         }
