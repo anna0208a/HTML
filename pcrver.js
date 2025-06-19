@@ -18,8 +18,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 dotenv.config();
 
-  // 用於處理 Excel 文件
-
 const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 const fileManager = new GoogleAIFileManager(process.env.API_KEY);
 
@@ -37,7 +35,7 @@ export async function uploadPDF(pcrFiles, productFiles){
       topP: 1,
       topK: 1
     }
-});
+  });
   const pcruploadResult = await fileManager.uploadFile(
     pcrFiles,
     {
@@ -53,7 +51,7 @@ export async function uploadPDF(pcrFiles, productFiles){
 
   const exampleCSVContent = await fs.readFile(`${__dirname}/盤查項目範本.csv`, 'utf-8');
   // 第一階段：上傳 PCR 與 PDF，讓 Gemini 擷取已提供資料
-   const result1 = await model.generateContent([
+  const result1 = await model.generateContent([
   {
     fileData: { fileUri: pcruploadResult.file.uri, mimeType: pcruploadResult.file.mimeType }
   },
@@ -68,15 +66,15 @@ export async function uploadPDF(pcrFiles, productFiles){
   "總產品產量": 數值,
   "單位": "原文單位"
 }
-`])
-const extractedJSON0 = result1.response.text();
+` ])
+  const extractedJSON0 = result1.response.text();
   const cleanJsonString0 = extractedJSON0
     .replace(/```json/g, '')
     .replace(/```/g, '')
     .trim();
-console.log(cleanJsonString0);
+  console.log(cleanJsonString0);
 
-const result = await model.generateContent([
+  const result = await model.generateContent([
   {
     fileData: { fileUri: pcruploadResult.file.uri, mimeType: pcruploadResult.file.mimeType }
   },
@@ -175,16 +173,16 @@ L2 "備註"
 
 
   `
-]);
+  ]);
 
-const extractedJSON = result.response.text();
+  const extractedJSON = result.response.text();
   const cleanJsonString1 = extractedJSON
     .replace(/```json/g, '')
     .replace(/```/g, '')
     .trim();
-console.log(cleanJsonString1);
-// 第二階段：補齊缺漏的排放係數
-const filledResult = await model.generateContent([
+  console.log(cleanJsonString1);
+  // 第二階段：補齊缺漏的排放係數
+  const filledResult = await model.generateContent([
   `${pull}`,
   `${carbonCSVContent}`,
   `
@@ -237,8 +235,7 @@ L2 "備註"
 ]);
 
 
-const finalJSON = filledResult.response.text();
-
+  const finalJSON = filledResult.response.text();
   const cleanJsonString = finalJSON
     .replace(/```json/g, '')
     .replace(/```/g, '')
@@ -315,7 +312,7 @@ async function generateExcel(datain) {
       ]);
     });
   
-    // 建立資料驗證公式
+    // 建立資料驗證公式(下拉選單)
     const unitFormula = `Code!$G$1:$G$${dropdowns["單位"].length}`;
     const lifecycleFormula = `Code!$A$1:$A$${dropdowns["生命週期階段"].length}`;
     const groupFormula = `Code!$C$1:$C$${dropdowns["群組"].length}`;
